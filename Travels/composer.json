@@ -1,0 +1,31 @@
+{
+    "name": "nwidart/travels",
+    "description": "",
+    "authors": [
+        {
+            "name": "Nicolas Widart",
+            "email": "n.widart@gmail.com"
+        }
+    ],
+    "extra": {
+        "laravel": {
+            "providers": [],
+            "aliases": {
+
+            }
+        }
+    },
+    "autoload": {
+        "psr-4": {
+            "Modules\\Travels\\": "",
+            "Modules\\Travels\\App\\": "app/",
+            "Modules\\Travels\\Database\\Factories\\": "database/factories/",
+            "Modules\\Travels\\Database\\Seeders\\": "database/seeders/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Modules\\Travels\\Tests\\": "tests/"
+        }
+    }
+}

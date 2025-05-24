@@ -1,0 +1,11 @@
+{
+    "name": "Synktime",
+    "alias": "synktime",
+    "description": "",
+    "keywords": [],
+    "priority": 0,
+    "providers": [
+        "Modules\\Synktime\\Providers\\SynktimeServiceProvider"
+    ],
+    "files": []
+}

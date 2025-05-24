@@ -1,0 +1,208 @@
+<?php
+
+namespace Modules\Payroll\DataTables;
+
+use App\Models\CustomField;
+use App\Models\CustomFieldGroup;
+use App\DataTables\BaseDataTable;
+use Yajra\DataTables\EloquentDataTable;
+use Illuminate\Database\Eloquent\Builder as QueryBuilder;
+use Yajra\DataTables\Html\Button;
+use Yajra\DataTables\Html\Column;
+use Modules\HotelManagement\Entities\Property;
+use Modules\Payroll\Entities\PayrollLeaveSalaryCalculation;
+
+class payrollAttentanceSummaryDataTable extends BaseDataTable
+{
+    /**
+     * Build the DataTable class.
+     *
+     * @param QueryBuilder $query Results from query() method.
+     */
+    public function dataTable(QueryBuilder $query): EloquentDataTable
+    {
+        return (new EloquentDataTable($query))
+            ->addColumn('check', fn ($row) => $this->checkBox($row))
+            ->addColumn('action', function ($row) {
+                $action = '<div class="task_view">';
+
+                $action .= '<div class="dropdown">
+                        <a class="task_view_more d-flex align-items-center justify-content-center dropdown-toggle" type="link"
+                            id="dropdownMenuLink-' . $row->id . '" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                            <i class="icon-options-vertical icons"></i>
+                        </a>
+                        <div class="dropdown-menu dropdown-menu-right" aria-labelledby="dropdownMenuLink-' . $row->id . '" tabindex="0">';
+
+                $action .= '<a class="dropdown-item openRightModal" href="' . route('attentance-summary.edit', [$row->id]) . '">
+                                <i class="fa fa-edit mr-2"></i>
+                                ' . trans('app.edit') . '
+                            </a>';
+                $action .= '<a class="dropdown-item delete-table-row-properties" href="javascript:;" data-id="' . $row->id . '">
+                                <i class="fa fa-trash mr-2"></i>
+                                ' . trans('app.delete') . '
+                            </a>';
+
+                $action .= '</div>
+                    </div>
+                </div>';
+
+                return $action;
+            })
+            ->editColumn('employee_name', fn ($row) => $row->employee_id ? view('components.employee', ['user' => $row->employee]) : '--')
+
+
+            ->addIndexColumn()
+            ->smart(false)
+            ->setRowId(fn ($row) => 'row-' . $row->id)
+            ->rawColumns(['action', 'check', 'employee_name']);
+    }
+
+    public function query(PayrollLeaveSalaryCalculation $model): QueryBuilder
+    {
+        $request = $this->request();
+        $startDate = null;
+        $endDate = null;
+
+        if (!is_null($request->month) && $request->month != 'null' && $request->month != '') {
+            $month = $request->year . '-' . $request->month;
+            $model = $model->where('month', $month);
+        }
+        if (!is_null($request->year) && $request->year != 'null' && $request->year != '') {
+            $model = $model->where('year', $request->year);
+        }
+
+
+        if ($request->startDate !== null && $request->startDate != 'null' && $request->startDate != '') {
+            $startDate = companyToDateString($request->startDate);
+        }
+
+        if ($request->endDate !== null && $request->endDate != 'null' && $request->endDate != '') {
+            $endDate = companyToDateString($request->endDate);
+        }
+        // $leadID = $request->leadID;
+        if ($startDate != null && $endDate != null) {
+            $model = $model->whereBetween('payroll_salary_advance.created_at', [$startDate, $endDate]);
+        }
+        if ($request->searchText != '') {
+            $model = $model->where(
+                function ($query) {
+                    $query->where('users.name', 'like', '%' . request('searchText') . '%')
+                        ->orWhere('payroll_leave_salary_calculations.sl_full_pay', 'like', '%' . request('searchText') . '%')
+                        ->orWhere('payroll_leave_salary_calculations.sl_half_pay', 'like', '%' . request('searchText') . '%')
+                        ->orWhere('payroll_leave_salary_calculations.taken_leave', 'like', '%' . request('searchText') . '%')
+                        ->orWhere('payroll_leave_salary_calculations.absent', 'like', '%' . request('searchText') . '%')
+                        ->orWhere('payroll_leave_salary_calculations.combo_offs', 'like', '%' . request('searchText') . '%')
+                        ->orWhere('payroll_leave_salary_calculations.total_leave_earned', 'like', '%' . request('searchText') . '%')
+                        ->orWhere('payroll_leave_salary_calculations.opening_leave_balance', 'like', '%' . request('searchText') . '%')
+                        ->orWhere('payroll_leave_salary_calculations.closing_leave_balance', 'like', '%' . request('searchText') . '%')
+                        ->orWhere('payroll_leave_salary_calculations.opening_excess_leave', 'like', '%' . request('searchText') . '%')
+                        ->orWhere('payroll_leave_salary_calculations.closing_excess_leave', 'like', '%' . request('searchText') . '%')
+                        ->orWhere('payroll_leave_salary_calculations.excess_leave_taken', 'like', '%' . request('searchText') . '%');
+                }
+            );
+        }
+
+        // if ($leadID != 0 && $leadID != null && $leadID != 'all') {
+        //     $model = $model->where('contact_person_id', '=', $leadID);
+        // }
+        $model = $model->select([
+            'users.name as employee_name',
+            'payroll_leave_salary_calculations.id',
+            'payroll_leave_salary_calculations.employee_id',
+            'payroll_leave_salary_calculations.month',
+            'payroll_leave_salary_calculations.year',
+            'payroll_leave_salary_calculations.sl_full_pay',
+            'payroll_leave_salary_calculations.sl_half_pay',
+            'payroll_leave_salary_calculations.taken_leave',
+            'payroll_leave_salary_calculations.absent',
+            'payroll_leave_salary_calculations.combo_offs',
+            'payroll_leave_salary_calculations.total_leave_earned',
+            'payroll_leave_salary_calculations.opening_leave_balance',
+            'payroll_leave_salary_calculations.closing_leave_balance',
+            'payroll_leave_salary_calculations.opening_excess_leave',
+            'payroll_leave_salary_calculations.closing_excess_leave',
+            'payroll_leave_salary_calculations.excess_leave_taken'
+        ])
+            ->leftJoin('users', 'users.id', '=', 'payroll_leave_salary_calculations.employee_id');
+
+        return $model->newQuery();
+    }
+
+    /**
+     * Optional method if you want to use the html builder.
+     */
+
+
+    public function html()
+    {
+        $dataTable = $this->setBuilder('attentance-summary-table')
+            ->parameters(
+                [
+                    // 'scrollX' => true,
+                    'initComplete' => 'function () {
+                   window.LaravelDataTables["attentance-summary-table"].buttons().container()
+                    .appendTo("#table-actions")
+                }',
+                    'fnDrawCallback' => 'function( oSettings ) {
+                    $("#attentance-summary-table .select-picker").selectpicker();
+                    $(".bs-tooltip-top").removeClass("show");
+                    $(".select-picker.change-status").each(function() {
+                        var selectPicker = $(this);
+                        selectPicker.selectpicker();
+                        selectPicker.siblings("button").attr("title", "");
+                    });
+                }',
+                ]
+            );
+
+        if (canDataTableExport()) {
+            $dataTable->buttons(Button::make(['extend' => 'excel', 'text' => '<i class="fa fa-file-export"></i> ' . trans('app.exportExcel')]));
+        }
+
+        return $dataTable;
+    }
+
+    /**
+     * Get the dataTable columns definition.
+     */
+    public function getColumns(): array
+    {
+        return [
+            'check' => [
+                'title' => '<input type="checkbox" name="select_all_table" id="select-all-table" onclick="selectAllTable(this)">',
+                'exportable' => false,
+                'orderable' => false,
+                'searchable' => false
+            ],
+            '#' => ['data' => 'DT_RowIndex', 'orderable' => false, 'searchable' => false, 'visible' => false, 'title' => '#'],
+            'employee_id' => ['data' => 'employee_name', 'name' => 'users.name', 'title' => 'Employee'],
+            // 'month' => ['data' => 'month', 'name' => 'payroll_leave_salary_calculations.month', 'title' => 'Month'],
+            // 'year' => ['data' => 'year', 'name' => 'payroll_leave_salary_calculations.year', 'title' => 'Year'],
+            'sl_full_pay' => ['data' => 'sl_full_pay', 'name' => 'payroll_leave_salary_calculations.sl_full_pay', 'title' => 'Sick<br>Leave<br>Full Pay'],
+            'sl_half_pay' => ['data' => 'sl_half_pay', 'name' => 'payroll_leave_salary_calculations.sl_half_pay', 'title' => 'Sick<br>Leave<br>Half Pay'],
+            'taken_leave' => ['data' => 'taken_leave', 'name' => 'payroll_leave_salary_calculations.taken_leave', 'title' => 'Taken<br>Leave'],
+            'absent' => ['data' => 'absent', 'name' => 'payroll_leave_salary_calculations.absent', 'title' => 'Absent'],
+            'combo_offs' => ['data' => 'combo_offs', 'name' => 'payroll_leave_salary_calculations.combo_offs', 'title' => 'Combo<br>Offs'],
+            'total_leave_earned' => ['data' => 'total_leave_earned', 'name' => 'payroll_leave_salary_calculations.total_leave_earned', 'title' => 'Total<br>Leave<br>Earned'],
+            'opening_leave_balance' => ['data' => 'opening_leave_balance', 'name' => 'payroll_leave_salary_calculations.opening_leave_balance', 'title' => 'Opening<br>Leave<br>Balance'],
+            'closing_leave_balance' => ['data' => 'closing_leave_balance', 'name' => 'payroll_leave_salary_calculations.closing_leave_balance', 'title' => 'Closing<br>Leave<br>Balance'],
+            'opening_excess_leave' => ['data' => 'opening_excess_leave', 'name' => 'payroll_leave_salary_calculations.opening_excess_leave', 'title' => 'Opening<br>Excess<br>Leave'],
+            'closing_excess_leave' => ['data' => 'closing_excess_leave', 'name' => 'payroll_leave_salary_calculations.closing_excess_leave', 'title' => 'Closing<br>Excess<br>Leave'],
+            'excess_leave_taken' => ['data' => 'excess_leave_taken', 'name' => 'payroll_leave_salary_calculations.excess_leave_taken', 'title' => 'Excess<br>Leave<br>Taken'],
+            Column::computed('action', 'Action')
+                ->exportable(false)
+                ->printable(false)
+                ->orderable(false)
+                ->searchable(false)
+                ->addClass('text-right pr-20')
+        ];
+    }
+
+    /**
+     * Get the filename for export.
+     */
+    protected function filename(): string
+    {
+        return 'payroll-attentance-summary_' . date('YmdHis');
+    }
+}
