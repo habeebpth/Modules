@@ -1,0 +1,11 @@
+{
+    "name": "Accounting",
+    "alias": "accounting",
+    "description": "Complete accounting module with chart of accounts, journal entries, financial reports",
+    "keywords": ["accounting", "financial", "ledger", "reports"],
+    "priority": 0,
+    "providers": [
+        "Modules\\Accounting\\Providers\\AccountingServiceProvider"
+    ],
+    "files": []
+}

@@ -1,0 +1,24 @@
+{
+    "name": "nwidart/accounting",
+    "description": "Complete accounting module for ERP system",
+    "authors": [
+        {
+            "name": "ERP Developer",
+            "email": "developer@erp.com"
+        }
+    ],
+    "extra": {
+        "laravel": {
+            "providers": [],
+            "aliases": {}
+        }
+    },
+    "autoload": {
+        "psr-4": {
+            "Modules\\Accounting\\": "",
+            "Modules\\Accounting\\App\\": "app/",
+            "Modules\\Accounting\\Database\\Factories\\": "database/factories/",
+            "Modules\\Accounting\\Database\\Seeders\\": "database/seeders/"
+        }
+    }
+}
