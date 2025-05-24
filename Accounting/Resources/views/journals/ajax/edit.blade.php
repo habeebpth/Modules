@@ -1,9 +1,9 @@
 <div class="row">
     <div class="col-sm-12">
-        <x-form id="save-journal-form">
+        <x-form id="edit-journal-form">
             <div class="add-client bg-white rounded">
                 <h4 class="mb-0 p-20 f-21 font-weight-normal text-capitalize border-bottom-grey">
-                    @lang('Create Journal Entry')
+                    @lang('Edit Journal Entry') - {{ $journal->journal_number }}
                 </h4>
 
                 <div class="row px-4">
@@ -11,11 +11,12 @@
                         <x-forms.datepicker fieldId="date" :fieldLabel="__('Date')"
                             fieldName="date" fieldRequired="true"
                             fieldPlaceholder="@lang('Select Date')"
-                            :fieldValue="now()->format(company()->date_format)" />
+                            :fieldValue="$journal->date->format(company()->date_format)" />
                     </div>
                     <div class="col-md-6">
                         <x-forms.text fieldId="reference" :fieldLabel="__('Reference')"
-                            fieldName="reference" fieldPlaceholder="@lang('Enter Reference')" />
+                            fieldName="reference" fieldPlaceholder="@lang('Enter Reference')"
+                            :fieldValue="$journal->reference_type" />
                     </div>
                 </div>
 
@@ -23,7 +24,8 @@
                     <div class="col-md-12">
                         <x-forms.textarea fieldId="description" :fieldLabel="__('Description')"
                             fieldName="description" fieldRequired="true"
-                            fieldPlaceholder="@lang('Enter description for this journal entry')" />
+                            fieldPlaceholder="@lang('Enter description for this journal entry')"
+                            :fieldValue="$journal->description" />
                     </div>
                 </div>
 
@@ -42,60 +44,43 @@
                                     </tr>
                                 </thead>
                                 <tbody id="journal-entries-body">
+                                    @foreach($journal->entries as $index => $entry)
                                     <tr class="journal-entry-row">
                                         <td>
-                                            <select name="entries[0][account_id]" class="form-control select-picker account-select" data-live-search="true" required>
+                                            <select name="entries[{{ $index }}][account_id]" class="form-control select-picker account-select" data-live-search="true" required>
                                                 <option value="">@lang('Select Account')</option>
                                                 @foreach($accounts as $account)
-                                                    <option value="{{ $account->id }}">{{ $account->account_code }} - {{ $account->account_name }}</option>
+                                                    <option value="{{ $account->id }}" {{ $entry->account_id == $account->id ? 'selected' : '' }}>
+                                                        {{ $account->account_code }} - {{ $account->account_name }}
+                                                    </option>
                                                 @endforeach
                                             </select>
                                         </td>
                                         <td>
-                                            <input type="text" name="entries[0][description]" class="form-control entry-description" placeholder="@lang('Entry description')" />
+                                            <input type="text" name="entries[{{ $index }}][description]" class="form-control entry-description"
+                                                placeholder="@lang('Entry description')" value="{{ $entry->description }}" />
                                         </td>
                                         <td>
-                                            <input type="number" name="entries[0][debit]" class="form-control debit-input" step="0.01" min="0" placeholder="0.00" />
+                                            <input type="number" name="entries[{{ $index }}][debit]" class="form-control debit-input"
+                                                step="0.01" min="0" placeholder="0.00" value="{{ $entry->debit > 0 ? $entry->debit : '' }}" />
                                         </td>
                                         <td>
-                                            <input type="number" name="entries[0][credit]" class="form-control credit-input" step="0.01" min="0" placeholder="0.00" />
+                                            <input type="number" name="entries[{{ $index }}][credit]" class="form-control credit-input"
+                                                step="0.01" min="0" placeholder="0.00" value="{{ $entry->credit > 0 ? $entry->credit : '' }}" />
                                         </td>
                                         <td>
-                                            <button type="button" class="btn btn-sm btn-danger remove-entry" disabled>
+                                            <button type="button" class="btn btn-sm btn-danger remove-entry" {{ $loop->index < 2 && $journal->entries->count() <= 2 ? 'disabled' : '' }}>
                                                 <i class="fa fa-trash"></i>
                                             </button>
                                         </td>
                                     </tr>
-                                    <tr class="journal-entry-row">
-                                        <td>
-                                            <select name="entries[1][account_id]" class="form-control select-picker account-select" data-live-search="true" required>
-                                                <option value="">@lang('Select Account')</option>
-                                                @foreach($accounts as $account)
-                                                    <option value="{{ $account->id }}">{{ $account->account_code }} - {{ $account->account_name }}</option>
-                                                @endforeach
-                                            </select>
-                                        </td>
-                                        <td>
-                                            <input type="text" name="entries[1][description]" class="form-control entry-description" placeholder="@lang('Entry description')" />
-                                        </td>
-                                        <td>
-                                            <input type="number" name="entries[1][debit]" class="form-control debit-input" step="0.01" min="0" placeholder="0.00" />
-                                        </td>
-                                        <td>
-                                            <input type="number" name="entries[1][credit]" class="form-control credit-input" step="0.01" min="0" placeholder="0.00" />
-                                        </td>
-                                        <td>
-                                            <button type="button" class="btn btn-sm btn-danger remove-entry">
-                                                <i class="fa fa-trash"></i>
-                                            </button>
-                                        </td>
-                                    </tr>
+                                    @endforeach
                                 </tbody>
                                 <tfoot>
                                     <tr>
                                         <td colspan="2" class="text-right"><strong>@lang('Total')</strong></td>
-                                        <td><strong id="total-debit">0.00</strong></td>
-                                        <td><strong id="total-credit">0.00</strong></td>
+                                        <td><strong id="total-debit">{{ number_format($journal->total_debit, 2) }}</strong></td>
+                                        <td><strong id="total-credit">{{ number_format($journal->total_credit, 2) }}</strong></td>
                                         <td></td>
                                     </tr>
                                     <tr>
@@ -109,14 +94,14 @@
                             </table>
                         </div>
 
-                        <div class="alert alert-warning mt-3" id="balance-warning" style="display: none;">
+                        <div class="alert alert-warning mt-3" id="balance-warning" style="{{ $journal->isBalanced() ? 'display: none;' : '' }}">
                             <i class="fa fa-exclamation-triangle"></i> @lang('Journal entry is not balanced. Total debits must equal total credits.')
                         </div>
                     </div>
                 </div>
 
                 <x-form-actions>
-                    <x-forms.button-primary id="save-journal" class="mr-3" icon="check">@lang('app.save')
+                    <x-forms.button-primary id="update-journal" class="mr-3" icon="check">@lang('app.update')
                     </x-forms.button-primary>
                     <x-forms.button-cancel :link="route('accounting.journals.index')" class="border-0">@lang('app.cancel')
                     </x-forms.button-cancel>
@@ -128,7 +113,10 @@
 
 <script>
 $(document).ready(function() {
-    let entryIndex = 2;
+    let entryIndex = {{ $journal->entries->count() }};
+
+    // Calculate initial totals
+    calculateTotals();
 
     // Add new entry row
     $('#add-entry').click(function() {
@@ -175,7 +163,9 @@ $(document).ready(function() {
     // Update remove button states
     function updateRemoveButtons() {
         const rows = $('.journal-entry-row').length;
-        $('.remove-entry').prop('disabled', rows <= 2);
+        $('.remove-entry').each(function(index) {
+            $(this).prop('disabled', rows <= 2);
+        });
     }
 
     // Calculate totals
@@ -214,18 +204,18 @@ $(document).ready(function() {
         }
     }
 
-    // Save journal entry
-    $('#save-journal').click(function() {
-        const url = "{{ route('accounting.journals.store') }}";
+    // Update journal entry
+    $('#update-journal').click(function() {
+        const url = "{{ route('accounting.journals.update', $journal->id) }}";
 
         $.easyAjax({
             url: url,
-            container: '#save-journal-form',
-            type: "POST",
+            container: '#edit-journal-form',
+            type: "PUT",
             disableButton: true,
             blockUI: true,
-            buttonSelector: "#save-journal",
-            data: $('#save-journal-form').serialize(),
+            buttonSelector: "#update-journal",
+            data: $('#edit-journal-form').serialize(),
             success: function(response) {
                 if (response.status == 'success') {
                     window.location.href = response.redirectUrl;
@@ -235,5 +225,6 @@ $(document).ready(function() {
     });
 
     $('.select-picker').selectpicker();
+    updateRemoveButtons();
 });
 </script>

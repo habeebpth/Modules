@@ -84,9 +84,9 @@ class AccountingService
     }
 
     /**
-     * Update account current balance
+     * Update account current balance - Made public for controller access
      */
-    protected function updateAccountBalance($accountId)
+    public function updateAccountBalance($accountId)
     {
         $account = ChartOfAccount::find($accountId);
         if (!$account) return;

@@ -4,7 +4,8 @@
 <x-filters.filter-box>
     <div class="select-box py-2 px-lg-2 px-md-2 px-0 mr-3">
         <x-forms.datepicker fieldId="as_of_date" :fieldLabel="__('As of Date')"
-            fieldName="as_of_date" :fieldValue="$asOfDate" />
+            fieldName="as_of_date" :fieldValue="$asOfDate"
+            fieldPlaceholder="@lang('Select Date')" />
     </div>
     <div class="select-box py-2 px-lg-2 px-md-2 px-0">
         <button type="button" class="btn btn-primary" id="apply-filter">
@@ -63,7 +64,7 @@
 $('#apply-filter').click(function() {
     const asOfDate = $('#as_of_date').val();
     const url = "{{ route('accounting.reports.trial-balance') }}";
-    
+
     window.location.href = url + '?as_of_date=' + asOfDate;
 });
 </script>

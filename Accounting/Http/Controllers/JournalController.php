@@ -9,6 +9,7 @@ use Modules\Accounting\Entities\JournalEntry;
 use Modules\Accounting\Entities\ChartOfAccount;
 use Modules\Accounting\Services\AccountingService;
 use Modules\Accounting\DataTables\JournalDataTable;
+use Illuminate\Support\Facades\DB;
 
 class JournalController extends AccountBaseController
 {
@@ -19,7 +20,7 @@ class JournalController extends AccountBaseController
         parent::__construct();
         $this->accountingService = $accountingService;
         $this->pageTitle = 'Journals';
-        
+
         $this->middleware(function ($request, $next) {
             abort_403(!in_array('accounting', $this->user->modules));
             return $next($request);
@@ -38,13 +39,13 @@ class JournalController extends AccountBaseController
             ->where('is_active', true)
             ->orderBy('account_code')
             ->get();
-        
+
         $this->view = 'accounting::journals.ajax.create';
-        
+
         if (request()->ajax()) {
             return $this->returnAjax($this->view);
         }
-        
+
         return view('accounting::journals.create', $this->data);
     }
 
@@ -80,37 +81,37 @@ class JournalController extends AccountBaseController
     {
         $this->journal = Journal::with('entries.account')->findOrFail($id);
         $this->pageTitle = 'Journal Entry #' . $this->journal->journal_number;
-        
+
         return view('accounting::journals.show', $this->data);
     }
 
     public function edit($id)
     {
         $this->journal = Journal::with('entries')->findOrFail($id);
-        
+
         if ($this->journal->status !== Journal::STATUS_DRAFT) {
             return Reply::error('Only draft journal entries can be edited');
         }
-        
+
         $this->pageTitle = 'Edit Journal Entry';
         $this->accounts = ChartOfAccount::where('company_id', user()->company_id)
             ->where('is_active', true)
             ->orderBy('account_code')
             ->get();
-        
+
         $this->view = 'accounting::journals.ajax.edit';
-        
+
         if (request()->ajax()) {
             return $this->returnAjax($this->view);
         }
-        
+
         return view('accounting::journals.edit', $this->data);
     }
 
     public function update(Request $request, $id)
     {
         $journal = Journal::findOrFail($id);
-        
+
         if ($journal->status !== Journal::STATUS_DRAFT) {
             return Reply::error('Only draft journal entries can be updated');
         }
@@ -127,7 +128,7 @@ class JournalController extends AccountBaseController
         // Validate balanced entries
         $totalDebit = collect($request->entries)->sum('debit');
         $totalCredit = collect($request->entries)->sum('credit');
-        
+
         if ($totalDebit != $totalCredit) {
             return Reply::error('Journal entry is not balanced');
         }
@@ -171,25 +172,25 @@ class JournalController extends AccountBaseController
     public function post($id)
     {
         $journal = Journal::findOrFail($id);
-        
+
         if ($journal->status !== Journal::STATUS_DRAFT) {
             return Reply::error('Journal entry is already posted');
         }
-        
+
         if (!$journal->isBalanced()) {
             return Reply::error('Journal entry is not balanced');
         }
-        
+
         try {
             DB::transaction(function () use ($journal) {
                 $journal->update(['status' => Journal::STATUS_POSTED]);
-                
+
                 // Update account balances
                 foreach ($journal->entries as $entry) {
                     $this->accountingService->updateAccountBalance($entry->account_id);
                 }
             });
-            
+
             return Reply::success('Journal entry posted successfully');
         } catch (\Exception $e) {
             return Reply::error($e->getMessage());
@@ -199,11 +200,11 @@ class JournalController extends AccountBaseController
     public function reverse($id)
     {
         $journal = Journal::findOrFail($id);
-        
+
         if ($journal->status !== Journal::STATUS_POSTED) {
             return Reply::error('Only posted journal entries can be reversed');
         }
-        
+
         try {
             // Create reversing entry
             $reversingEntries = [];
@@ -215,21 +216,21 @@ class JournalController extends AccountBaseController
                     'description' => 'Reversing entry for JE #' . $journal->journal_number,
                 ];
             }
-            
+
             $reversingJournal = $this->accountingService->createJournalEntry(
                 $reversingEntries,
                 'Reversing entry for JE #' . $journal->journal_number,
                 'journal_reversal',
                 $journal->id
             );
-            
+
             // Mark original as reversed
             $journal->update([
                 'status' => Journal::STATUS_REVERSED,
                 'reversed_by' => user()->id,
                 'reversed_at' => now(),
             ]);
-            
+
             return Reply::success('Journal entry reversed successfully');
         } catch (\Exception $e) {
             return Reply::error($e->getMessage());
