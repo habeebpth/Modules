@@ -153,4 +153,13 @@ return [
     'cashFlow' => 'Cash Flow',
     'closingEntries' => 'Closing Entries',
     'auditTrail' => 'Audit Trail',
+
+    // Add to resources/lang/eng/app.php or your language file
+    'setup' => 'Setup',
+    'transactions' => 'Transactions',
+    'comingSoon' => 'Coming Soon',
+    'budgetManagement' => 'Budget Management',
+    'bankReconciliation' => 'Bank Reconciliation',
+    'taxManagement' => 'Tax Management',
+    'yearEndClosing' => 'Year-End Closing',
 ];
