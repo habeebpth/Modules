@@ -8,9 +8,12 @@
 
                 <div class="row px-4">
                     <div class="col-md-6">
-                        <x-forms.datepicker fieldId="date" :fieldLabel="__('Date')"
-                            fieldName="date" fieldRequired="true"
+                        <x-forms.datepicker
                             fieldPlaceholder="@lang('Select Date')"
+                            fieldId="date"
+                            :fieldLabel="__('Date')"
+                            fieldName="date"
+                            fieldRequired="true"
                             :fieldValue="$journal->date->format(company()->date_format)" />
                     </div>
                     <div class="col-md-6">
