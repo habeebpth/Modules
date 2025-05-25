@@ -6,6 +6,7 @@ use App\Helper\Reply;
 use Illuminate\Http\Request;
 use Modules\Accounting\Entities\TaxCode;
 use Modules\Accounting\Entities\ChartOfAccount;
+use Modules\Accounting\DataTables\TaxCodeDataTable;
 
 class TaxCodeController extends AccountBaseController
 {
@@ -20,13 +21,9 @@ class TaxCodeController extends AccountBaseController
         });
     }
 
-    public function index()
+    public function index(TaxCodeDataTable $dataTable)
     {
-        $this->taxCodes = TaxCode::where('company_id', user()->company_id)
-            ->with('taxAccount')
-            ->get();
-
-        return view('accounting::tax-codes.index', $this->data);
+        return $dataTable->render('accounting::tax-codes.index', $this->data);
     }
 
     public function create()
@@ -34,7 +31,7 @@ class TaxCodeController extends AccountBaseController
         $this->pageTitle = 'Create Tax Code';
         $this->taxAccounts = ChartOfAccount::where('company_id', user()->company_id)
             ->where('account_type', 'liability')
-            ->active()
+            ->where('is_active', true)
             ->get();
 
         return view('accounting::tax-codes.create', $this->data);
@@ -54,5 +51,43 @@ class TaxCodeController extends AccountBaseController
         return Reply::successWithData('Tax code created successfully', [
             'redirectUrl' => route('accounting.tax-codes.index')
         ]);
+    }
+
+    public function edit($id)
+    {
+        $this->taxCode = TaxCode::findOrFail($id);
+        $this->pageTitle = 'Edit Tax Code';
+        $this->taxAccounts = ChartOfAccount::where('company_id', user()->company_id)
+            ->where('account_type', 'liability')
+            ->where('is_active', true)
+            ->get();
+
+        return view('accounting::tax-codes.edit', $this->data);
+    }
+
+    public function update(Request $request, $id)
+    {
+        $taxCode = TaxCode::findOrFail($id);
+
+        $request->validate([
+            'code' => 'required|unique:tax_codes,code,' . $id,
+            'name' => 'required|string|max:255',
+            'type' => 'required|in:sales,purchase,both',
+            'rate' => 'required|numeric|min:0|max:100',
+        ]);
+
+        $taxCode->update($request->all());
+
+        return Reply::successWithData('Tax code updated successfully', [
+            'redirectUrl' => route('accounting.tax-codes.index')
+        ]);
+    }
+
+    public function destroy($id)
+    {
+        $taxCode = TaxCode::findOrFail($id);
+        $taxCode->delete();
+
+        return Reply::success('Tax code deleted successfully');
     }
 }

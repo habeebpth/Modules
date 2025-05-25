@@ -26,7 +26,6 @@ Route::group(['middleware' => 'auth', 'prefix' => 'account'], function () {
     Route::post('journals/{journal}/post', [JournalController::class, 'post'])->name('accounting.journals.post');
     Route::post('journals/{journal}/reverse', [JournalController::class, 'reverse'])->name('accounting.journals.reverse');
 
-
     // Budgets
     Route::resource('budgets', BudgetController::class)->names('accounting.budgets');
 
@@ -52,7 +51,6 @@ Route::group(['middleware' => 'auth', 'prefix' => 'account'], function () {
     Route::post('import/chart-of-accounts', [ImportExportController::class, 'importChartOfAccounts'])->name('accounting.import.chart-of-accounts');
     Route::get('export/chart-of-accounts', [ImportExportController::class, 'exportChartOfAccounts'])->name('accounting.export.chart-of-accounts');
 
-
     // Reports
     Route::get('reports/trial-balance', [ReportController::class, 'trialBalance'])->name('accounting.reports.trial-balance');
     Route::get('reports/balance-sheet', [ReportController::class, 'balanceSheet'])->name('accounting.reports.balance-sheet');
@@ -64,4 +62,7 @@ Route::group(['middleware' => 'auth', 'prefix' => 'account'], function () {
 Route::group(['middleware' => 'auth', 'prefix' => 'api/accounting'], function () {
     Route::post('create-entry', [AccountingController::class, 'createJournalEntry'])->name('api.accounting.create-entry');
     Route::get('accounts', [ChartOfAccountController::class, 'getAccounts'])->name('api.accounting.accounts');
+
+    // Book balance API for reconciliation
+    Route::get('book-balance', [ReconciliationController::class, 'getBookBalance'])->name('api.accounting.book-balance');
 });
